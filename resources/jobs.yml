@@ -1,0 +1,25 @@
+resources:
+  jobs:
+    trace_to_tune_training:
+      name: trace-to-tune-ai-runtime
+      description: Fine-tune a skill router from reviewed synthetic traces on Serverless GPU.
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: fine_tune_skill_router
+          timeout_seconds: 7200
+          max_retries: 0
+          environment_key: ai_runtime
+          notebook_task:
+            notebook_path: ${workspace.file_path}/training/train_notebook.py
+            base_parameters:
+              training_script: ${workspace.file_path}/training/train.py
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              registered_model: ${var.registered_model}
+              max_steps: ${var.max_steps}
+          compute:
+            hardware_accelerator: GPU_1xA10
+      environments:
+        - environment_key: ai_runtime
+          spec:
+            environment_version: "4"

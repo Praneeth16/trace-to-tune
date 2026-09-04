@@ -1,0 +1,13 @@
+.databricks/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.playwright-mcp/
+dist/
+build/
+*.egg-info/
+outputs/runtime/
+checkpoints/
+.DS_Store

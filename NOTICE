@@ -1,0 +1,10 @@
+Trace to Tune
+Copyright 2026 Praneeth Paikray
+
+This project adapts workflow ideas from burtenshaw/training-agents at commit
+97d3c23793367993b0f3255fe3368417c549b080, licensed under Apache-2.0.
+No upstream source trace dataset or trained weights are included.
+
+The demo narrative is also informed by the public Databricks video
+"Building Agents on Databricks with Custom Apps and Omnigent" published on
+August 6, 2026.
