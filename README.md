@@ -115,7 +115,7 @@ The shared metastore was already at its registered-model object quota, so this r
 Requirements: Python 3.12+, `uv`, Databricks CLI 0.285.0+, a serverless FEVM workspace with the required previews, and a valid Databricks CLI profile.
 
 ```bash
-uv sync
+uv sync --locked
 uv run ruff check .
 uv run pytest -q
 databricks bundle validate -t praneeth --profile <fevm-profile>
