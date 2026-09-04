@@ -8,10 +8,11 @@ The demo combines Unity Gateway, governed Skills, Lakebase Autoscaling, Unity Ca
 
 - Unity Gateway routes model traffic across two providers, falls back to a third, applies per-user and service rate limits, records request tags, and writes an inference table.
 - A deterministic Sensitive Data Detection policy blocks synthetic email and Indian PAN values before the model is called.
-- Two Markdown skills are published as governed `catalog.schema.skill` assets with Unity Catalog permissions and audit activity.
+- Five Markdown skills are published as governed `catalog.schema.skill` assets with Unity Catalog permissions and audit activity.
 - Lakebase holds low-latency reviewer outcomes while a Delta table holds the approved, PII-safe training set.
-- An AI Runtime job fine-tunes a SmolLM2 skill router with LoRA on a serverless A10 and logs frozen-split metrics to MLflow.
+- An AI Runtime job fine-tunes a SmolLM2 skill router with LoRA on a serverless A10 and logs prompt-family-disjoint evaluation metrics to MLflow.
 - Custom LLM Serving packages the merged model with a vLLM entrypoint, registers it in Unity Catalog, and serves the `llm/v1/chat` contract.
+- An MLflow-traced workflow rejects raw Email/PAN locally before the ungoverned custom router, loads the selected governed `SKILL.md` from the Unity Catalog Skills filesystem, records its path and SHA-256, then sends the instruction-grounded response request through Unity Gateway.
 
 ## Unity Gateway showcase coverage
 
@@ -19,7 +20,7 @@ The demo combines Unity Gateway, governed Skills, Lakebase Autoscaling, Unity Ca
 | --- | --- |
 | Model services | Live custom service with 80/20 traffic routing, fallback, request tags, and inference logging |
 | Service policies | Live deterministic input block for email and Indian PAN |
-| Skills | Two live governed Unity Catalog skills plus request-tag attribution |
+| Skills | Five live governed Unity Catalog skills plus selected-skill and version attribution |
 | MCP services | Show the workspace's built-in GitHub, Slack, Gmail, Drive, Calendar, DBSQL, sandbox, web-search, Microsoft 365, and Atlassian inventory and permissions |
 | Model provider services | Explain the surface; do not fabricate a provider because this workspace has none configured |
 | Agent services | Mention as Beta registration and discovery only; runtime invocation is not yet available |
@@ -48,15 +49,18 @@ flowchart LR
 
 The governed and custom-model paths remain separate on purpose. As of September 4, 2026, the new Unity Gateway Sensitive Data Detection service policy applies to model services and model-provider services, not MLflow custom model endpoints. Presenting the custom endpoint as if it inherited the PII policy would be inaccurate.
 
+The combined agent workflow therefore performs a fail-closed local Email/PAN check before sending text to the custom router. Unity Gateway still applies the live centralized policy to the downstream governed response. The local preflight is defense in depth, not a claim that custom serving gained Gateway policy support.
+
 ## Live demo sequence
 
 1. Send a normal request through `governed_router` with `project`, `skill`, and `test` request tags.
-2. Send synthetic `test.user@example.com` and `ABCDE1234F` values. Confirm HTTP 200 with top-level `databricks_service_policy.action = deny` and `finish_reason = content_filter`.
+2. Send synthetic `test.user@example.com` and structurally valid test PAN `AFZPK7190K` in separate requests. Confirm HTTP 200 with top-level `databricks_service_policy.action = deny`, `phase = pre_call`, `finish_reason = content_filter`, and zero tokens for each detector.
 3. Inspect the service routing split, fallback, rate limits, policy, inference table, and usage.
-4. Load `pii-safe-response` and `trace-curation` from the Databricks Skills MCP server and show their Unity Catalog permissions.
+4. Show `order-status`, `refund-review`, `account-recovery`, `pii-safe-response`, and `trace-curation` in the Unity Gateway Skills inventory and inspect their Unity Catalog permissions.
 5. Query 96 Lakebase review rows and the 72-train / 24-evaluation Delta split.
-6. Open the AI Runtime job and MLflow run. Compare baseline and tuned frozen-split accuracy.
-7. Query the custom endpoint with order-status, account-recovery, and privacy-safe prompts.
+6. Open the AI Runtime job and MLflow run. Compare baseline and tuned prompt-family-disjoint accuracy.
+7. Query the custom endpoint, show the 21/24 result, and explain the three misses on unseen reimbursement wording.
+8. Open the MLflow trace for the router-to-governed-response workflow and inspect skill/version attribution.
 
 The exact presenter script and expected evidence are in [DEMO.md](DEMO.md). Build status is tracked in [TASKS.md](TASKS.md).
 
@@ -66,17 +70,23 @@ The September 4, 2026 run in the Praneeth FEVM workspace produced:
 
 | Check | Result |
 | --- | --- |
-| Local tests | 9 passed |
-| Lakebase reviewer rows | 96 approved rows across 4 skills |
-| Unity Catalog split | 72 train / 24 held-out evaluation rows |
+| Local tests | 22 passed |
+| Lakebase reviewer rows | 192 revision rows retained; 96 content-addressed current rows approved across 4 skills |
+| Unity Catalog split | 72 train / 24 prompt-family-disjoint evaluation rows |
 | AI Runtime compute | Serverless `GPU_1xA10` |
-| LoRA training | 200 steps, final logged loss 0.0362 |
-| Baseline held-out accuracy | 0% |
-| Tuned held-out accuracy | 100% (24/24) |
-| Registered model | Version 4, ready |
+| AI Runtime job run | `189570673841596`, successful |
+| LoRA training | SmolLM2-360M-Instruct, 300 steps, final logged loss 0.0007 |
+| Baseline evaluation accuracy | 0% |
+| Tuned evaluation accuracy | 87.5% (21/24) |
+| MLflow training run | `26d05237f26b41efb30ae34058be97c1` |
+| Registered model | `support_triage_agent` version 6, ready |
 | Custom LLM endpoint | `trace-to-tune-skill-router`, ready on `GPU_MEDIUM` |
-| Deployed endpoint evaluation | 100% (24/24) through the live `llm/v1/chat` API |
-| PII policy probe | HTTP 200, `action = deny`, `phase = pre_call`, zero model tokens |
+| Deployed endpoint evaluation | 87.5% (21/24) through the live `llm/v1/chat` API |
+| Promotion gate | Correctly fails because the default required accuracy is 100% |
+| PII policy probes | Email and IN_PAN independently return HTTP 200, `deny`, `pre_call`, `content_filter`, and zero tokens |
+| Agent workflow trace | `tr-2cd6b74ebf42d2ce0515d099a29a87e1`, status OK, 4 spans including governed-skill load and explicit `ALLOW` decision |
+
+The three evaluation misses share one unseen wording family: “eligible for reimbursement.” This is a useful limitation, not a result to tune away after seeing the evaluation set. A future model iteration needs a newly authored evaluation set.
 
 ## Live workspace evidence
 
@@ -88,27 +98,17 @@ The September 4, 2026 run in the Praneeth FEVM workspace produced:
 
 ![Sensitive Data Detection configured to deny email and Indian PAN before the model](docs/screenshots/02-pii-policy-configuration.jpg)
 
-### Governed skills
+### Email PII request blocked in the Playground
 
-![Two governed skills published in Unity AI Gateway](docs/screenshots/03-governed-skills.jpg)
-
-### PII request blocked in the Playground
-
-![Synthetic PII request blocked by the block-pii-input service policy](docs/screenshots/04-pii-policy-block.jpg)
-
-### AI Runtime and MLflow result
-
-![Finished training run showing baseline accuracy zero and tuned accuracy one](docs/screenshots/05-mlflow-training-metrics.jpg)
-
-### Custom LLM Serving
-
-![Ready custom LLM endpoint serving registered model version 4 on GPU Medium](docs/screenshots/06-custom-llm-serving.jpg)
+![Synthetic email request blocked by the block-pii-input service policy](docs/screenshots/04-pii-policy-block.jpg)
 
 ### Lakebase review state
 
 ![Lakebase query showing 24 approved rows for each of four skills](docs/screenshots/07-lakebase-feedback.jpg)
 
-The live shared metastore was already above its registered-model object quota, so the run wrote an isolated new version under an existing registered model owned by the workspace user. It did not change the existing model versions or their endpoints. In a metastore with capacity, the bundle default creates `catalog.schema.skill_router`.
+The routing, policy-configuration, email-block, and Lakebase screenshots remain accurate. The older two-skill, leaky-evaluation, and version-4 serving screenshots are intentionally not presented. Browser security prevented exporting replacement UI images during this run; the run IDs and strict API results above are the current evidence.
+
+The shared metastore was already at its registered-model object quota, so this run added version 6 under the existing `serverless_lakebase_praneeth_catalog.agent_eval.support_triage_agent` container and updated `trace-to-tune-skill-router` to that version. In a metastore with capacity, the bundle default creates `catalog.schema.skill_router`.
 
 ## Local verification
 
@@ -131,14 +131,18 @@ Bootstrap Unity Catalog, Lakebase, the synthetic trace set, and the Unity Gatewa
 uv run scripts/bootstrap_workspace.py --profile <fevm-profile>
 ```
 
-Publish each folder under `skills/` with the `create_skill` tool from the `databricks-skill-registry` MCP server. Databricks currently exposes skill publication through `ucode` and that MCP server, not the Databricks CLI.
+Publish and finalize every folder under `skills/` through the current Unity Catalog Skills API:
+
+```bash
+uv run scripts/publish_skills.py --profile <fevm-profile>
+```
 
 Attach the Beta Sensitive Data Detection policy in the Unity Gateway UI:
 
 - Service: `governed_router`
-- Classifications: `class.email_address`, `class.in_pan`
-- Action: Block
-- Phase: Input
+- Classifications: Email address and PAN
+- Action: Deny
+- Phase: Input only
 
 Then deploy and run training:
 
@@ -161,6 +165,14 @@ uv run scripts/deploy_custom_endpoint.py --profile <fevm-profile>
 uv run scripts/query_custom_endpoint.py --profile <fevm-profile>
 ```
 
+The query command is a promotion gate and currently exits nonzero because 87.5% is below its default 100% threshold. That failure is expected for version 6 and should remain visible.
+
+Run and verify the traced router-to-governed-response workflow:
+
+```bash
+uv run scripts/run_agent_workflow.py --profile <fevm-profile>
+```
+
 Probe the PII policy separately:
 
 ```bash
@@ -171,7 +183,9 @@ uv run scripts/test_gateway.py --profile <fevm-profile> --require-policy-block
 
 The repository does not contain raw production traces, credentials, tokens, checkpoints, or model artifacts. The training set uses synthetic order IDs and redaction markers. Runtime evidence under `outputs/runtime/` is ignored by Git.
 
-The project adapts the measurable SFT rung from Burtenshaw's Apache-2.0 [training-agents](https://github.com/burtenshaw/training-agents) project: reviewed traces, a frozen evaluation split, LoRA, smoke tests, and evidence before promotion. It does not copy or redistribute the upstream trace dataset. The broader demo flow is also informed by Databricks' [Building Agents on Databricks with Custom Apps and Omnigent](https://www.youtube.com/watch?v=9KA3_rW9o08) walkthrough.
+The project adapts the measurable SFT rung from Burtenshaw's Apache-2.0 [training-agents](https://github.com/burtenshaw/training-agents) project: reviewed traces, a prompt-family-disjoint evaluation split, LoRA, smoke tests, and evidence before promotion. It does not copy or redistribute the upstream trace dataset. The broader demo flow is also informed by Databricks' [Building Agents on Databricks with Custom Apps and Omnigent](https://www.youtube.com/watch?v=9KA3_rW9o08) walkthrough.
+
+The implemented video adaptation is the governed skill load plus MLflow-traced router-to-response chain. This repository does not claim to reproduce the video's Databricks App or MCP-backed business actions.
 
 ## Capability status on September 4, 2026
 
