@@ -17,4 +17,4 @@
 - [x] Deploy and query the custom LLM endpoint (24/24 held-out examples correct).
 - [x] Capture verified screenshots and add them to the README.
 - [x] Run the private repository release scan.
-- [ ] Create and push the `Praneeth16` GitHub repository.
+- [x] Create and push the private `Praneeth16/trace-to-tune` GitHub repository.
