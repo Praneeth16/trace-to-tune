@@ -18,11 +18,14 @@ dbutils.widgets.text(
     "registered_model",
     "serverless_lakebase_praneeth_catalog.trace_to_tune.skill_router",
 )
-dbutils.widgets.text("max_steps", "40")
+dbutils.widgets.text("max_steps", "")
 
 training_script = dbutils.widgets.get("training_script")
 if not training_script:
     raise ValueError("training_script job parameter is required")
+max_steps = dbutils.widgets.get("max_steps")
+if not max_steps:
+    raise ValueError("max_steps job parameter is required")
 
 sys.argv = [
     training_script,
@@ -33,6 +36,6 @@ sys.argv = [
     "--registered-model",
     dbutils.widgets.get("registered_model"),
     "--max-steps",
-    dbutils.widgets.get("max_steps"),
+    max_steps,
 ]
 runpy.run_path(training_script, run_name="__main__")

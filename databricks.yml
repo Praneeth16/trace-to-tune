@@ -12,7 +12,7 @@ variables:
   registered_model:
     default: ${var.catalog}.${var.schema}.skill_router
   max_steps:
-    default: 200
+    default: 300
 
 targets:
   praneeth:

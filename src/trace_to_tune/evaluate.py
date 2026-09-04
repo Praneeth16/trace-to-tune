@@ -25,3 +25,10 @@ def routing_accuracy(predictions: list[str], expected: list[str]) -> float:
         parse_skill(prediction) == label for prediction, label in zip(predictions, expected)
     )
     return correct / len(expected)
+
+
+def require_minimum_accuracy(accuracy: float, minimum: float) -> None:
+    if not 0 <= minimum <= 1:
+        raise ValueError("minimum accuracy must be between 0 and 1")
+    if accuracy < minimum:
+        raise RuntimeError(f"Endpoint accuracy {accuracy:.3f} is below required {minimum:.3f}")
