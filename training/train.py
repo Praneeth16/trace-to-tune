@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -52,8 +53,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--catalog", required=True)
     parser.add_argument("--schema", required=True)
     parser.add_argument("--registered-model", required=True)
-    parser.add_argument("--model-id", default="HuggingFaceTB/SmolLM2-135M-Instruct")
-    parser.add_argument("--max-steps", type=int, default=40)
+    parser.add_argument("--model-id", default="HuggingFaceTB/SmolLM2-360M-Instruct")
+    parser.add_argument("--max-steps", type=int, required=True)
     return parser.parse_args()
 
 
@@ -122,18 +123,24 @@ def predict_text(model, tokenizer, prompt: str) -> str:
     return tokenizer.decode(output[0][inputs.shape[-1] :], skip_special_tokens=True)
 
 
-def predict_skill(text: str) -> str:
-    for skill in ("order-status", "refund-review", "account-recovery", "pii-safe-response"):
-        if skill in text:
-            return skill
-    return "unparseable"
+def predict_skill(text: str, allowed_skills: set[str]) -> str:
+    match = re.search(r"\{.*?\}", text, re.DOTALL)
+    if not match:
+        return "unparseable"
+    try:
+        value = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return "unparseable"
+    skill = value.get("skill")
+    return skill if isinstance(skill, str) and skill in allowed_skills else "unparseable"
 
 
 def evaluate(model, tokenizer, rows: list[dict[str, str]]) -> tuple[float, list[dict[str, object]]]:
     predictions = []
+    allowed_skills = {row["skill"] for row in rows}
     for row in rows:
         response = predict_text(model, tokenizer, row["prompt"])
-        prediction = predict_skill(response)
+        prediction = predict_skill(response, allowed_skills)
         predictions.append(
             {
                 "prompt": row["prompt"],

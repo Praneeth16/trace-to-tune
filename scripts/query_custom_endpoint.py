@@ -8,7 +8,7 @@ from databricks.sdk import WorkspaceClient
 from openai import OpenAI
 
 from trace_to_tune.dataset import SYSTEM_PROMPT, generate_trace_rows
-from trace_to_tune.evaluate import parse_skill
+from trace_to_tune.evaluate import parse_skill, require_minimum_accuracy
 
 
 def main() -> None:
@@ -16,6 +16,7 @@ def main() -> None:
     parser.add_argument("--profile", default="fe-vm-lakebase-praneeth")
     parser.add_argument("--endpoint", default="trace-to-tune-skill-router")
     parser.add_argument("--output", default="outputs/runtime/custom-endpoint-results.json")
+    parser.add_argument("--min-accuracy", type=float, default=1.0)
     args = parser.parse_args()
 
     workspace = WorkspaceClient(profile=args.profile)
@@ -63,6 +64,7 @@ def main() -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(output, indent=2) + "\n")
     print(json.dumps(output, indent=2))
+    require_minimum_accuracy(float(output["accuracy"]), args.min_accuracy)
 
 
 if __name__ == "__main__":

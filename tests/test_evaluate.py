@@ -1,6 +1,6 @@
 import pytest
 
-from trace_to_tune.evaluate import parse_skill, routing_accuracy
+from trace_to_tune.evaluate import parse_skill, require_minimum_accuracy, routing_accuracy
 
 
 def test_parse_skill_ignores_surrounding_text() -> None:
@@ -19,3 +19,11 @@ def test_routing_accuracy() -> None:
 def test_routing_accuracy_validates_lengths() -> None:
     with pytest.raises(ValueError):
         routing_accuracy([], [])
+
+
+def test_minimum_accuracy_is_enforced() -> None:
+    require_minimum_accuracy(1.0, 1.0)
+    with pytest.raises(RuntimeError):
+        require_minimum_accuracy(0.75, 1.0)
+    with pytest.raises(ValueError):
+        require_minimum_accuracy(1.0, 1.1)

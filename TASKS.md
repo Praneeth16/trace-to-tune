@@ -3,7 +3,7 @@
 - [x] Verify the September 2026 Unity Gateway, Skills, AI Runtime, and Custom LLM Serving documentation.
 - [x] Confirm the `fe-vm-lakebase-praneeth` profile and live Unity Gateway APIs.
 - [x] Define a synthetic PII-safe trace dataset and local tests.
-- [x] Add two governed skill folders.
+- [x] Add five governed skill folders aligned with the router labels and curation workflow.
 - [x] Add Lakebase and Unity Catalog bootstrap code.
 - [x] Add the model service configuration with routing, fallback, rate limits, and inference logging.
 - [x] Add an AI Runtime A10 LoRA training task.
@@ -14,7 +14,9 @@
 - [x] Deploy the AI Runtime job definition.
 - [x] Attach and verify the Sensitive Data Detection `Deny` policy.
 - [x] Complete a successful AI Runtime training run.
-- [x] Deploy and query the custom LLM endpoint (24/24 held-out examples correct).
-- [x] Capture verified screenshots and add them to the README.
+- [x] Deploy and query version 6 through the custom LLM endpoint (21/24 prompt-family-disjoint examples correct; 100% promotion gate fails).
+- [x] Add and verify an MLflow-traced router-to-governed-response workflow.
+- [x] Remove stale two-skill, leaky-evaluation, and version-4 screenshots from the README.
+- [ ] Export replacement UI screenshots for five skills, MLflow version 6, Custom LLM Serving version 6, and the MLflow agent trace. Browser security blocked export in this run.
 - [x] Run the private repository release scan.
 - [x] Create and push the private `Praneeth16/trace-to-tune` GitHub repository.

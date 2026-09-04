@@ -5,6 +5,7 @@ description = "Unity Gateway trace-to-fine-tune demo for Databricks"
 requires-python = ">=3.12"
 dependencies = [
   "databricks-sdk>=0.125.0",
+  "mlflow==3.12.0",
   "openai>=1.107.0",
   "psycopg[binary]>=3.2.9",
   "pydantic>=2.11.0",
