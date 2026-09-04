@@ -17,6 +17,6 @@
 - [x] Deploy and query version 6 through the custom LLM endpoint (21/24 prompt-family-disjoint examples correct; 100% promotion gate fails).
 - [x] Add and verify an MLflow-traced router-to-governed-response workflow.
 - [x] Remove stale two-skill, leaky-evaluation, and version-4 screenshots from the README.
-- [ ] Export replacement UI screenshots for five skills, MLflow version 6, Custom LLM Serving version 6, and the MLflow agent trace. Browser security blocked export in this run.
+- [x] Export public-safe UI screenshots for the MLflow agent trace, curated training data, AI Runtime run, fine-tuning metrics, registered model version 6, Custom LLM Serving version 6, live endpoint response, and 21/24 endpoint evaluation.
 - [x] Run the private repository release scan.
-- [x] Create and push the private `Praneeth16/trace-to-tune` GitHub repository.
+- [x] Create, scan, and publish the public `Praneeth16/trace-to-tune` GitHub repository.

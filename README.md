@@ -82,6 +82,7 @@ The September 4, 2026 run in the Praneeth FEVM workspace produced:
 | Registered model | `support_triage_agent` version 6, ready |
 | Custom LLM endpoint | `trace-to-tune-skill-router`, ready on `GPU_MEDIUM` |
 | Deployed endpoint evaluation | 87.5% (21/24) through the live `llm/v1/chat` API |
+| MLflow endpoint evaluation run | `452e4c933d5340ad89f1d8984d52e8e2`, finished |
 | Promotion gate | Correctly fails because the default required accuracy is 100% |
 | PII policy probes | Email and IN_PAN independently return HTTP 200, `deny`, `pre_call`, `content_filter`, and zero tokens |
 | Agent workflow trace | `tr-2cd6b74ebf42d2ce0515d099a29a87e1`, status OK, 4 spans including governed-skill load and explicit `ALLOW` decision |
@@ -106,7 +107,39 @@ The three evaluation misses share one unseen wording family: “eligible for rei
 
 ![Lakebase query showing 24 approved rows for each of four skills](docs/screenshots/07-lakebase-feedback.jpg)
 
-The routing, policy-configuration, email-block, and Lakebase screenshots remain accurate. The older two-skill, leaky-evaluation, and version-4 serving screenshots are intentionally not presented. Browser security prevented exporting replacement UI images during this run; the run IDs and strict API results above are the current evidence.
+### MLflow agent trace and governed skill attribution
+
+![MLflow trace showing the router, governed skill load, governed response, selected skill, version, path, and hash](docs/screenshots/08-mlflow-agent-trace.jpg)
+
+### Curated trace training data
+
+![Unity Catalog curated trace rows used by the training and held-out evaluation split](docs/screenshots/09-curated-trace-training-data.jpg)
+
+### AI Runtime serverless fine-tuning run
+
+![Successful AI Runtime fine-tuning run 189570673841596 on Serverless GPU 1xA10](docs/screenshots/10-ai-runtime-finetuning-run.jpg)
+
+### MLflow baseline and tuned accuracy
+
+![MLflow metrics comparing zero baseline accuracy with 0.875 tuned accuracy](docs/screenshots/11-mlflow-finetuning-metrics.jpg)
+
+### Unity Catalog registered model version 6
+
+![Unity Catalog support triage agent version 6 with evaluation metrics](docs/screenshots/12-registered-model-version-6.jpg)
+
+### Custom LLM Serving version 6 deployment
+
+![Custom LLM Serving deployment history showing support_triage_agent-6 ready](docs/screenshots/13-custom-llm-serving-version-6.jpg)
+
+### Live custom endpoint response
+
+![Databricks Playground response from trace-to-tune-skill-router selecting order-status](docs/screenshots/14-custom-endpoint-response.jpg)
+
+### Live endpoint evaluation: 21 of 24
+
+![MLflow endpoint evaluation showing 0.875 accuracy, 21 correct, 24 total, endpoint name, model version 6, and held-out sample prompt](docs/screenshots/15-live-endpoint-evaluation.jpg)
+
+These screenshots were captured from the September 4, 2026 live run in `serverless-lakebase-praneeth`. The older two-skill, leaky-evaluation, and version-4 serving screenshots remain intentionally excluded. The Playground shot uses `max_tokens=96` and includes the router instruction in the visible request because the Playground default of 5,000 tokens exceeds this compact model's 2,048-token context window.
 
 The shared metastore was already at its registered-model object quota, so this run added version 6 under the existing `serverless_lakebase_praneeth_catalog.agent_eval.support_triage_agent` container and updated `trace-to-tune-skill-router` to that version. In a metastore with capacity, the bundle default creates `catalog.schema.skill_router`.
 
